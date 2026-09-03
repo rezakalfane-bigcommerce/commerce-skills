@@ -7,10 +7,11 @@ A collection of [Claude Code](https://claude.com/claude-code) skills for working
 | [`commerce-admin`](./commerce-admin) | Perform BigCommerce store administration and merchandising tasks via the BigCommerce REST Management APIs — products, categories, inventory, promotions, orders, customers, B2B Edition, webhooks, and more. |
 | [`makeswift-components`](./makeswift-components) | Create or update Makeswift page-builder components in a BigCommerce Catalyst (Next.js) storefront — registering components, adding/editing props/controls, wiring builder-editable content. |
 | [`screen-capture`](./screen-capture) | Capture full-page screenshots or short interaction-video recordings of a locally-running web app using Playwright, with a synthetic visible cursor and a number of dev-server-specific fixes baked in. |
+| [`site-to-catalog`](./site-to-catalog) | Replicate a live storefront's catalog into a BigCommerce sandbox: crawl the site, parse its nav into a category tree, group offers into product families, then load and enrich categories, products, variants, swatches, inventory, and SEO via the Management API. Requires `commerce-admin`. |
 
 ## Install
 
-### All three skills
+### All skills
 
 Clone once, then symlink each subdirectory into `~/.claude/skills/`:
 
@@ -19,6 +20,7 @@ git clone https://github.com/rezakalfane-bigcommerce/commerce-skills.git ~/dev/c
 ln -s ~/dev/commerce-skills/commerce-admin ~/.claude/skills/commerce-admin
 ln -s ~/dev/commerce-skills/makeswift-components ~/.claude/skills/makeswift-components
 ln -s ~/dev/commerce-skills/screen-capture ~/.claude/skills/screen-capture
+ln -s ~/dev/commerce-skills/site-to-catalog ~/.claude/skills/site-to-catalog
 ```
 
 Symlinking back to the clone means `git pull` in `~/dev/commerce-skills` updates all installed skills at once.
@@ -31,7 +33,7 @@ No git history, no full clone, via [`degit`](https://github.com/Rich-Harris/degi
 npx degit rezakalfane-bigcommerce/commerce-skills/screen-capture ~/.claude/skills/screen-capture
 ```
 
-Swap the subdirectory name (`commerce-admin`, `makeswift-components`, `screen-capture`) to install a different one. This copies the files only — no `.git` folder, so it won't auto-update; re-run the same command to refresh.
+Swap the subdirectory name (`commerce-admin`, `makeswift-components`, `screen-capture`, `site-to-catalog`) to install a different one. This copies the files only — no `.git` folder, so it won't auto-update; re-run the same command to refresh.
 
 Git-native alternative, if `npx`/degit isn't available, using sparse checkout:
 
