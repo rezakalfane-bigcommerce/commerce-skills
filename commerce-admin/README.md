@@ -1,4 +1,4 @@
-# bigcommerce-admin
+# commerce-admin
 
 A [Claude Code](https://claude.com/claude-code) skill for administering a BigCommerce store through the BigCommerce REST Management APIs — catalog and merchandising, orders and customers, store configuration, and B2B Edition.
 
@@ -16,10 +16,10 @@ A [Claude Code](https://claude.com/claude-code) skill for administering a BigCom
 
 ## Install
 
-Clone (or copy) this repo into your Claude Code skills directory:
+This skill is part of the [`commerce-skills`](https://github.com/rezakalfane-bigcommerce/commerce-skills) monorepo. See its [README](https://github.com/rezakalfane-bigcommerce/commerce-skills#install) for install commands (single-skill or all-skills). Quick single-skill install via [`degit`](https://github.com/Rich-Harris/degit):
 
 ```bash
-git clone https://github.com/rezakalfane-bigcommerce/bigcommerce-admin-skill.git ~/.claude/skills/bigcommerce-admin
+npx degit rezakalfane-bigcommerce/commerce-skills/commerce-admin ~/.claude/skills/commerce-admin
 ```
 
 Claude Code picks up any skill under `~/.claude/skills/` automatically — no further registration needed.

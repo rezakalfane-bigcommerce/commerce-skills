@@ -1,5 +1,5 @@
 ---
-name: bigcommerce-admin
+name: commerce-admin
 description: >-
   Perform BigCommerce store administration and merchandising tasks via the
   BigCommerce REST Management APIs. Use this skill whenever the user wants to
