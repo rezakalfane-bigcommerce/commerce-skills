@@ -1,4 +1,4 @@
-# bigcommerce-skills
+# commerce-skills
 
 A collection of [Claude Code](https://claude.com/claude-code) skills for working with BigCommerce, Catalyst/Makeswift storefronts, and local dev-server QA.
 
@@ -15,20 +15,20 @@ A collection of [Claude Code](https://claude.com/claude-code) skills for working
 Clone once, then symlink each subdirectory into `~/.claude/skills/`:
 
 ```bash
-git clone https://github.com/rezakalfane-bigcommerce/bigcommerce-skills.git ~/dev/bigcommerce-skills
-ln -s ~/dev/bigcommerce-skills/bigcommerce-admin ~/.claude/skills/bigcommerce-admin
-ln -s ~/dev/bigcommerce-skills/makeswift-components ~/.claude/skills/makeswift-components
-ln -s ~/dev/bigcommerce-skills/screen-capture ~/.claude/skills/screen-capture
+git clone https://github.com/rezakalfane-bigcommerce/commerce-skills.git ~/dev/commerce-skills
+ln -s ~/dev/commerce-skills/bigcommerce-admin ~/.claude/skills/bigcommerce-admin
+ln -s ~/dev/commerce-skills/makeswift-components ~/.claude/skills/makeswift-components
+ln -s ~/dev/commerce-skills/screen-capture ~/.claude/skills/screen-capture
 ```
 
-Symlinking back to the clone means `git pull` in `~/dev/bigcommerce-skills` updates all installed skills at once.
+Symlinking back to the clone means `git pull` in `~/dev/commerce-skills` updates all installed skills at once.
 
 ### Just one skill
 
 No git history, no full clone, via [`degit`](https://github.com/Rich-Harris/degit) (needs `npx`, nothing to install):
 
 ```bash
-npx degit rezakalfane-bigcommerce/bigcommerce-skills/screen-capture ~/.claude/skills/screen-capture
+npx degit rezakalfane-bigcommerce/commerce-skills/screen-capture ~/.claude/skills/screen-capture
 ```
 
 Swap the subdirectory name (`bigcommerce-admin`, `makeswift-components`, `screen-capture`) to install a different one. This copies the files only — no `.git` folder, so it won't auto-update; re-run the same command to refresh.
@@ -36,7 +36,7 @@ Swap the subdirectory name (`bigcommerce-admin`, `makeswift-components`, `screen
 Git-native alternative, if `npx`/degit isn't available, using sparse checkout:
 
 ```bash
-git clone --filter=blob:none --sparse https://github.com/rezakalfane-bigcommerce/bigcommerce-skills.git /tmp/bcs
+git clone --filter=blob:none --sparse https://github.com/rezakalfane-bigcommerce/commerce-skills.git /tmp/bcs
 cd /tmp/bcs && git sparse-checkout set screen-capture
 cp -R screen-capture ~/.claude/skills/screen-capture
 ```
