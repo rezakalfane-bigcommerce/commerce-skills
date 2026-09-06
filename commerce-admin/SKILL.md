@@ -16,7 +16,7 @@ description: >-
 
 # BigCommerce Admin & Merchandising
 
-Work with the BigCommerce REST Management APIs to administer a store: catalog and merchandising, orders and customers, and store configuration.
+Work with the BigCommerce REST Management APIs to administer a store: catalog and merchandising, orders and customers, and store configuration. Use the Admin GraphQL endpoint for Store Translations; see `references/translations.md`.
 
 ## Setup and authentication
 
@@ -129,11 +129,12 @@ For bulk mutations, do a read-first dry run: fetch what matches the filter, show
 1. **Confirm credentials** (env vars set, or ask).
 2. **Identify the domain** and read the matching reference file — they contain the endpoints, required fields, gotchas, and worked examples:
    - `references/catalog.md` — products, variants, options/modifiers, categories & category trees, brands, images, metafields, custom fields, bulk pricing, catalog summary, inventory adjustments & locations
+   - `references/translations.md` — Store Translations GraphQL API, localized product/category content, facets, custom fields, and URL paths
    - `references/merchandising.md` — promotions & coupon codes (v3), classic coupons (v2), price lists & assignments, customer segments/shopper profiles, banners, gift certificates, product sort order, channels & channel listings, featured/related products
    - `references/orders-customers.md` — orders (v2), order statuses, shipments, refunds & payment actions, order metafields, customers (v3), addresses, attributes, customer groups (v2), subscribers, wishlists
    - `references/store-admin.md` — store info & settings endpoints, webhooks, 301 redirects, scripts, pages, blog posts, themes & widgets, shipping zones/methods, tax classes, system logs
    - `references/b2b-edition.md` — B2B Edition companies, buyer users, sales reps, quotes/RFQs. **Separate API host and auth headers from everything else** — read this before making any B2B call.
-3. **Plan the calls** — smallest number of requests, batch where possible, read before destructive writes.
+3. **Plan the calls** — smallest number of requests, batch where possible, read before destructive writes. For translations, group entities by `resourceType` and locale; translation writes use the Admin GraphQL API rather than `bc_api.py`.
 4. **Execute with `bc_api.py`**, watching for the failure modes below.
 5. **Verify and report** — re-read what changed, summarize IDs created/modified, and surface any partial failures (v3 batch endpoints return per-item errors in a 207-style response body; check every element).
 
