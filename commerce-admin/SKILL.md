@@ -130,6 +130,7 @@ For bulk mutations, do a read-first dry run: fetch what matches the filter, show
 2. **Identify the domain** and read the matching reference file — they contain the endpoints, required fields, gotchas, and worked examples:
    - `references/catalog.md` — products, variants, options/modifiers, categories & category trees, brands, images, metafields, custom fields, bulk pricing, catalog summary, inventory adjustments & locations
    - `references/translations.md` — Store Translations GraphQL API, localized product/category content, facets, custom fields, and URL paths
+   - `references/currency-locale.md` — storefront locale context, transactional currency behavior, cart currency/locale mutations, and validation
    - `references/merchandising.md` — promotions & coupon codes (v3), classic coupons (v2), price lists & assignments, customer segments/shopper profiles, banners, gift certificates, product sort order, channels & channel listings, featured/related products
    - `references/orders-customers.md` — orders (v2), order statuses, shipments, refunds & payment actions, order metafields, customers (v3), addresses, attributes, customer groups (v2), subscribers, wishlists
    - `references/store-admin.md` — store info & settings endpoints, webhooks, 301 redirects, scripts, pages, blog posts, themes & widgets, shipping zones/methods, tax classes, system logs
