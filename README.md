@@ -1,6 +1,6 @@
 # commerce-skills
 
-A collection of [Claude Code](https://claude.com/claude-code) skills for working with BigCommerce, Catalyst/Makeswift storefronts, and local dev-server QA.
+A collection of agent skills (`SKILL.md` format) for working with BigCommerce, Catalyst/Makeswift storefronts, and local dev-server QA. Works with any agent that supports the SKILL.md convention — Claude Code, OpenAI Codex, OpenCode, and others.
 
 | Skill | Description |
 |---|---|
@@ -14,18 +14,40 @@ A collection of [Claude Code](https://claude.com/claude-code) skills for working
 
 ### All skills
 
-Clone once, then symlink each subdirectory into `~/.claude/skills/`:
+Clone once, then symlink each subdirectory into your agent's skills directory:
 
 ```bash
 git clone https://github.com/rezakalfane-bigcommerce/commerce-skills.git ~/dev/commerce-skills
-ln -s ~/dev/commerce-skills/commerce-admin ~/.claude/skills/commerce-admin
-ln -s ~/dev/commerce-skills/demo-video ~/.claude/skills/demo-video
-ln -s ~/dev/commerce-skills/makeswift-components ~/.claude/skills/makeswift-components
-ln -s ~/dev/commerce-skills/screen-capture ~/.claude/skills/screen-capture
-ln -s ~/dev/commerce-skills/site-to-catalog ~/.claude/skills/site-to-catalog
+```
+
+**Claude Code** — skills live in `~/.claude/skills/`:
+
+```bash
+for s in commerce-admin demo-video makeswift-components screen-capture site-to-catalog; do
+  ln -s ~/dev/commerce-skills/$s ~/.claude/skills/$s
+done
+```
+
+**Codex** — skills live in `~/.codex/skills/`:
+
+```bash
+for s in commerce-admin demo-video makeswift-components screen-capture site-to-catalog; do
+  ln -s ~/dev/commerce-skills/$s ~/.codex/skills/$s
+done
+```
+
+**OpenCode** — skills live in `~/.config/opencode/skills/`:
+
+```bash
+mkdir -p ~/.config/opencode/skills
+for s in commerce-admin demo-video makeswift-components screen-capture site-to-catalog; do
+  ln -s ~/dev/commerce-skills/$s ~/.config/opencode/skills/$s
+done
 ```
 
 Symlinking back to the clone means `git pull` in `~/dev/commerce-skills` updates all installed skills at once.
+
+> **Note:** OpenCode also discovers skills in `~/.claude/skills/` and `~/.agents/skills/`, so if you already symlinked for Claude Code, OpenCode picks them up automatically — no need to install twice.
 
 ### Just one skill
 
@@ -35,14 +57,14 @@ No git history, no full clone, via [`degit`](https://github.com/Rich-Harris/degi
 npx degit rezakalfane-bigcommerce/commerce-skills/screen-capture ~/.claude/skills/screen-capture
 ```
 
-Swap the subdirectory name (`commerce-admin`, `demo-video`, `makeswift-components`, `screen-capture`, `site-to-catalog`) to install a different one. This copies the files only — no `.git` folder, so it won't auto-update; re-run the same command to refresh.
+Swap the subdirectory name (`commerce-admin`, `demo-video`, `makeswift-components`, `screen-capture`, `site-to-catalog`) to install a different one, and swap the target path for your agent: `~/.claude/skills` (Claude Code), `~/.codex/skills` (Codex), or `~/.config/opencode/skills` (OpenCode). This copies the files only — no `.git` folder, so it won't auto-update; re-run the same command to refresh.
 
 Git-native alternative, if `npx`/degit isn't available, using sparse checkout:
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/rezakalfane-bigcommerce/commerce-skills.git /tmp/bcs
 cd /tmp/bcs && git sparse-checkout set screen-capture
-cp -R screen-capture ~/.claude/skills/screen-capture
+cp -R screen-capture ~/.claude/skills/screen-capture  # or your agent's skills dir
 ```
 
 ## Migrated from
