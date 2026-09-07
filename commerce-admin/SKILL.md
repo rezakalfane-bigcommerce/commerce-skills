@@ -133,7 +133,7 @@ For bulk mutations, do a read-first dry run: fetch what matches the filter, show
    - `references/currency-locale.md` — storefront locale context, transactional currency behavior, cart currency/locale mutations, and validation
    - `references/merchandising.md` — promotions & coupon codes (v3), classic coupons (v2), price lists & assignments, customer segments/shopper profiles, banners, gift certificates, product sort order, channels & channel listings, featured/related products
    - `references/orders-customers.md` — orders (v2), order statuses, shipments, refunds & payment actions, order metafields, customers (v3), addresses, attributes, customer groups (v2), subscribers, wishlists
-   - `references/store-admin.md` — store info & settings endpoints, webhooks, 301 redirects, scripts, pages, blog posts, themes & widgets, shipping zones/methods, tax classes, system logs
+   - `references/store-admin.md` — store info & settings endpoints, sites/routes, Storefront API tokens and hosted-checkout authentication, webhooks, 301 redirects, scripts, pages, blog posts, themes & widgets, shipping zones/methods, tax classes, system logs
    - `references/b2b-edition.md` — B2B Edition companies, buyer users, sales reps, quotes/RFQs. **Separate API host and auth headers from everything else** — read this before making any B2B call.
 3. **Plan the calls** — smallest number of requests, batch where possible, read before destructive writes. For translations, group entities by `resourceType` and locale; translation writes use the Admin GraphQL API rather than `bc_api.py`.
 4. **Execute with `bc_api.py`**, watching for the failure modes below.
@@ -147,3 +147,4 @@ For bulk mutations, do a read-first dry run: fetch what matches the filter, show
 - **Metafields**: `permission_set` is required (`read`, `write`, `app_only`, `read_and_sf_access`, `write_and_sf_access`); duplicates of (namespace, key, owner) 409.
 - **Image uploads**: use `image_url` (publicly reachable) in JSON, or multipart `image_file`. Local files must go multipart — the client script supports `--file` for this.
 - **Variant option confusion**: v3 "variant options" generate purchasable variants with their own SKUs; "modifiers" don't create variants. Building a variant matrix means creating options + option values first, or supplying `variants` inline on product create.
+- **Headless checkout works locally but becomes a guest in production**: read the hosted-checkout authentication section in `references/store-admin.md`; check the deployed Storefront API token's channel/origin scope and redeploy after replacing a hosted secret before changing application auth code.

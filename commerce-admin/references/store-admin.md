@@ -4,6 +4,7 @@ Scopes vary: **Information & settings**, **Content**, **Sites & routes**, **Stor
 
 ## Contents
 - [Store info & settings](#store-info--settings)
+- [Headless hosted-checkout authentication](#headless-hosted-checkout-authentication)
 - [Webhooks](#webhooks)
 - [301 redirects](#301-redirects)
 - [Scripts](#scripts)
@@ -29,6 +30,48 @@ Scopes vary: **Information & settings**, **Content**, **Sites & routes**, **Stor
   - Many accept `?channel_id=` for per-storefront overrides; `null` values mean "inherits global".
 - Store-level metafields (distinct from product/customer metafields): `GET/POST /v3/store/metafields`, `GET/PUT/DELETE /v3/store/metafields/{id}`.
 - Currencies: `GET/POST /v2/currencies`, `PUT/DELETE /v2/currencies/{id}`.
+
+## Headless hosted-checkout authentication
+
+Use this diagnostic when a headless storefront can create and display a cart, but BigCommerce's hosted checkout says the buyer must log in. It is especially useful when localhost works and the deployed storefront does not.
+
+### Supported Catalyst handoff
+
+- For a signed-in shopper, create the hosted-checkout redirect with GraphQL Storefront `cart.createCartRedirectUrls` and send the shopper's Customer Access Token in `X-Bc-Customer-Access-Token`. Use the redirect URL exactly as returned; BigCommerce may use an intermediate `attach_session` URL to establish the hosted-checkout session.
+- Do not treat a visible cart, prefilled email, or attached `customer_id` as proof that the hosted checkout has an authenticated browser session. Those facts prove cart ownership/data, not session handoff.
+- Before adding another SSO mechanism, verify that the application actually supplied a non-empty Customer Access Token and that a customer query succeeds with it. Safe diagnostics may record the token's presence and the redirect host/path, but never the token, redirect query string, or intermediate JWT.
+
+### Storefront token and channel checks
+
+Storefront API tokens are created with `POST /v3/storefront/api-token` and require the **Manage Storefront API Tokens** scope. The body requires:
+
+```json
+{
+  "channel_id": 123,
+  "expires_at": 1885635176,
+  "allowed_cors_origins": ["https://store.example.com"]
+}
+```
+
+`allowed_cors_origins` currently accepts one origin. Treat tokens as environment-specific: a localhost token and a production-origin token should be separate, and the production origin must match the deployed storefront origin exactly. Also verify:
+
+- `GET /v3/channels/{channel_id}` identifies the intended storefront channel.
+- `GET /v3/channels/{channel_id}/site` and `GET /v3/sites/{site_id}/routes` point to the deployed headless storefront.
+- The application uses the same channel ID when logging in, creating/attaching the cart, and creating redirect URLs.
+- The production runtime received the new secret. Replacing a hosted environment variable does not alter already-built deployments; redeploy before retesting.
+
+When localhost succeeds but production falls back to guest checkout, check these bindings before changing checkout code. A stale token created for an earlier origin is a strong suspect.
+
+### Safe token rotation
+
+- The create-token response contains the Storefront API token. Send it directly to the target secret manager or an appropriately protected local secret file without printing it to logs or shell history.
+- Verify the destination by variable name, environment, update time, and a fresh deployment—not by displaying the value.
+- Do not revoke an uncompromised prior token merely because it was replaced; allow short-lived tokens to expire naturally. Revoke only when compromise or an explicit cleanup requirement justifies it.
+- Test the complete flow with a newly authenticated buyer: storefront login → cart → hosted checkout. A public `200` health check does not verify customer session synchronization.
+
+### Customer Login API fallback
+
+The Customer Login API can establish a hosted-domain session with a signed JWT, but it requires the OAuth client ID and its corresponding client secret with the Customer Login capability. A Management API access token is not the JWT signing secret, and the client secret generally cannot be recovered after API-account creation. Do not fabricate or substitute credentials. Prefer the Customer Access Token redirect flow when the storefront supports it; use Customer Login JWT only when the integration explicitly requires it and the correct credentials are provisioned.
 
 ## Webhooks
 
