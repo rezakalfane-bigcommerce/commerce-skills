@@ -52,6 +52,20 @@ or import `b2b_request(method, path, params, body, env)` from it in a script. No
 | Company address book (full CRUD) | `GET /api/v3/io/addresses?companyId={id}&isShipping=true` or `&isBilling=true` — confirmed live (200, empty array on a company with none). Fields per entry: `firstName`/`lastName`/`addressLine1`/`addressLine2`/`city`/`stateName`/`stateCode`/`countryName`/`countryCode`/`zipCode`/`phoneNumber`/`companyId`/`addressId`/`label`/`externalId`/`createdAt`/`updatedAt` (camelCase; no plain `company` field — that's `companyId`). **`POST /api/v3/io/addresses` (create) — confirmed live, and it's another casing trap**: required fields per the 422 error are named in snake_case (`first_name`, `last_name`, `company_id`, `address_line_1`, `city`) but only `firstName`/`lastName`/`companyId`/`addressLine1` in **camelCase** actually satisfy them — `city` alone happens to validate either way since it's a single word, which is what makes this trap easy to miss (single-word field names give a false read that snake_case works). **Country is its own trap**: sending `"country": "United Kingdom"` (the display name, matching the GET response's `countryName` field) fails with `"At least one of the country and country code is not empty"` — you must send `countryCode` (ISO-2, e.g. `"GB"`) instead; the API derives `countryName` from it automatically. `isShipping`/`isBilling`/`isDefaultShipping`/`isDefaultBilling` (booleans, all default `false` if omitted — set explicitly if you want the new address usable as a default) and `state`/`stateCode`/`phoneNumber`/`label`/`addressLine2` are accepted optionally. Returns `{"data": {"addressId": N}}`. `GET`/`PUT`/`DELETE /api/v3/io/addresses/{addressId}` and `POST /api/v3/io/addresses/bulk` also exist per the spec — update/delete/bulk not yet tested live. |
 | Shopping lists | New resource, not previously documented here. `GET /api/v3/io/shopping-list` — junior buyers see only their own lists; senior buyers/admins see all of their company's approved/pending lists. `POST /api/v3/io/shopping-list` body: `name` (required), `description`, `status` (enum: `0` approved, `20` deleted, `30` draft, `40` ready for approval), exactly one of `userId`/`customerId`, optional `channelId`, `items` (array). `GET`/`PUT`/`DELETE /api/v3/io/shopping-list/{shoppingListId}`, `DELETE /api/v3/io/shopping-list/{shoppingListId}/items/{itemId}`. Not tested live. |
 
+### Address-book integration semantics
+
+The B2B address book is company-scoped rather than user-scoped. Buyer-portal “personal” and “company” address views are application-level labels over the same `/api/v3/io/addresses` rows; the resource has no per-user ownership field. This address book is also separate from native core customer addresses under `/v3/customers`, which may remain empty for B2B accounts.
+
+For quote and order flows, accept only an `addressId` from the client and resolve it again against the authenticated buyer’s current `companyId` before using it. Do not trust posted address fields or an ID supplied for another company. When creating an address, use the camelCase field names documented above even when a 422 message mentions snake_case, and send `countryCode` as an ISO-2 code (for example `GB`); the display-name `country` field is not a substitute. Set `isShipping`, `isBilling`, `isDefaultShipping`, and `isDefaultBilling` explicitly when the address should be usable for those purposes.
+
+The generic helper already supports these endpoints; no address-specific client is required:
+
+```bash
+python scripts/b2b_api.py GET /api/v3/io/addresses --params companyId=123
+python scripts/b2b_api.py POST /api/v3/io/addresses --data @address.json
+```
+
+
 ## Quotes (RFQ)
 
 `POST /api/v3/io/rfq` creates a real quote. Full worked example (fields confirmed against a live store):
