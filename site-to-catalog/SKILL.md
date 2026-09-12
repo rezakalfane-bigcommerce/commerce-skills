@@ -21,11 +21,13 @@ Run stages in order. Each stage's outputs (CSVs) are the next stage's inputs. **
 |---|---|---|
 | 1. Crawl | `scripts/crawl.py` | `categories.csv` → `raw/categories/*.html`, `products_seen.csv`, `category_products.csv`, `crawl_log.csv` |
 | 1b. Visuals (optional) | `scripts/extract_site_visuals.py` | site pages → logos/banners/background images for later use |
+| 1c. Rendered images (optional) | `scripts/capture_rendered_images.py` | URL list/CSV → rendered `<img>` sources JSONL, for JS-heavy sites |
 | 2. Nav → categories | `scripts/parse_nav.py` | saved nav HTML → `categories.csv` + `excluded.csv` |
 | 2b. Load categories | `scripts/load_categories.py` | `categories.csv` → BC categories (per tree), `bc_category_ids_tree*.csv` |
 | 3. Group families | `scripts/group_families.py` | `products_seen.csv` → `product_families.csv`, `product_family_members.csv`, `product_options.csv`, `product_option_values.csv` |
 | 4. Load products | `scripts/load_products.py` (+ `create_missing_products.py` for stragglers) | families → BC base products, `load_products_failures.csv` |
 | 5. Enrich | `scripts/enrich_products.py` then `scripts/load_enrichment.py` | scraped detail pages → descriptions, images, ratings, per-variant SKU/price matrix |
+| 5c. Replace images (optional) | `scripts/replace_product_images.py` | template CSV + BC mapping → delete stale images, add validated replacements |
 | 5b. Repair | `scripts/fix_stale_option_labels.py`, `scripts/debug_variant_failures.py` | fix option-label drift / diagnose variant-matching failures between reruns |
 | 6. Swatches | `scripts/load_swatches.py` | per-colour images → upgrade the colour option's display style from `dropdown` to `swatch` |
 | 7. Inventory | `scripts/load_inventory.py` | in-stock signals (JSON-LD) → per-variant inventory tracking + seeded stock levels |
@@ -63,6 +65,9 @@ checklists and `references/site-adapters.md` for per-platform extraction markers
 - **Inventory quantities usually aren't public.** Use the real in-stock/out-of-stock signal (JSON-LD availability) and seed plausible quantities with a fixed random seed for reproducibility.
 - **Respect the source site.** Throttle the crawl, identify with a normal UA, and only replicate content into a private sandbox/demo — this is for demo-building against a store you have a legitimate reason to model.
 - **Pre-scan every image URL before any load.** BigCommerce validates `image_url` fetchability at create time — one 404 rejects the whole product. `scan_image_urls.py` (concurrent HEAD) has caught dead URLs in every single project.
+- **Use a browser when the source renders images with JavaScript.** `capture_rendered_images.py` waits for lazy loading, scrolls the page, records `currentSrc`/natural dimensions, and can restrict results to the source CDN host. Filter out small logos and icons with minimum dimensions, then run `scan_image_urls.py` before loading.
+- **Treat image refresh as delete-and-add.** A product `PUT` with an `images` array can append to existing BigCommerce image records rather than remove them. `replace_product_images.py` deletes the product's existing image records first, then adds the replacement URLs; only use it with a deliberate `--replace-existing` flag and verify old-image counts afterward.
+- **Keep image provenance during capture.** Store the source page URL, source image URL, alt text, and dimensions in the JSONL capture output. When a category page supplies a shared image pool, record the assignment rule and verify distinct image counts; a valid URL alone does not prove that the image belongs to the product.
 - **Never send a product-level `sku` that duplicates one of the product's own variant SKUs** (common in exports) — 409 "Sku not unique". Drop the top-level `sku` when creating products with an inline variants matrix.
 - **trees/categories API shape gotchas:** batch `POST` returns items keyed `category_id` while the `GET` tree view uses `id`; category `url` must be an object `{"path": ...}` (plain string → 422); reruns hit "duplicate name in same parent" unless you reconcile by (name, parent) first. And the tree `GET` nests `children` — don't verify parents by matching `parent_id` across the top-level array.
 - **Scrub source traces in slugs too.** Brand scrubbing must cover brand names, category names, descriptions (site chrome: contact blocks, "ask our experts", off-domain links) — and then **regenerate slugs from the scrubbed names**, because source slugs keep the old brand.

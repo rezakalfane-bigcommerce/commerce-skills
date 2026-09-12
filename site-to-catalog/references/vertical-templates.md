@@ -64,6 +64,20 @@ on product create, and channel-assigns everything at the end. Test with
   names** (source slugs keep the old brand).
 - **Keep image URLs on the source host** — BigCommerce fetches them at load time
   and re-hosts on its own CDN; no trace remains in the demo store.
+- **When HTML extraction returns placeholders or repeated images**, capture the
+  rendered page with Playwright:
+
+  ```bash
+  python3 scripts/capture_rendered_images.py products.csv \
+    --column product_url --host assets.example.com \
+    --output captured_images.jsonl
+  ```
+
+  Use the captured `page_url` to map images back to products, keep the source
+  URL/alt/dimensions as provenance, and inspect a few assignments visually.
+  Then replace images with `replace_product_images.py`; it requires a dry run
+  and `--replace-existing` because BigCommerce image updates may append records.
+  Run `scan_image_urls.py` on the updated CSV before loading or refreshing.
 - Validate: unique slugs/SKUs (incl. variant SKUs), tree parent refs, then
   `scan_image_urls.py` — one 404 blocks a product create.
 
