@@ -40,6 +40,20 @@ Constants marked `# EDIT PER SITE` in the scripts must be updated first:
 - `load_products.py` / `create_missing_products.py` — `CHANNEL_IDS` and `TREE_TO_CHANNEL` for the target store.
 - `crawl.py` — set `CATALOG_WORKDIR` (or run from the working directory).
 
+## Vertical templates (compact reusable demo catalogs)
+
+An alternative to full-site replication when the goal is **fast demo provisioning**:
+distill a source into a scrubbed mini-catalog (≤5 top-level categories, ≤20 total,
+≤150 products, variants included) as two CSVs, then load it into any channel in
+~15–20 min. See `references/vertical-templates.md` for the format + scrub/verify
+checklists and `references/site-adapters.md` for per-platform extraction markers.
+
+- `scripts/load_template.py` — source-agnostic loader (brands → tree categories →
+  products with inline images/custom fields/variant matrices → channel assignment).
+  Idempotent and resumable. Proven on 4 verticals.
+- `scripts/scan_image_urls.py` — concurrent HEAD liveness scan of all template
+  image URLs. **Always run before `load_template.py`.**
+
 ## Hard-won rules (why the scripts are shaped this way)
 
 - **A BC category tree can only be assigned to one channel.** "Same categories on two channels" means creating an *identical structure twice*, once per tree — and keeping a separate local-id→BC-id map per tree (`bc_category_ids_tree1.csv`, `..._tree2.csv`).
@@ -48,6 +62,11 @@ Constants marked `# EDIT PER SITE` in the scripts must be updated first:
 - **Enrichment is iterative, not one-shot.** Keep a failures CSV per run and a numbered log per rerun (`load_enrichment_run1.log`, `run2`, ...); parsing edge cases surface only when real data hits them. Rerun until the failure list is empty or explained.
 - **Inventory quantities usually aren't public.** Use the real in-stock/out-of-stock signal (JSON-LD availability) and seed plausible quantities with a fixed random seed for reproducibility.
 - **Respect the source site.** Throttle the crawl, identify with a normal UA, and only replicate content into a private sandbox/demo — this is for demo-building against a store you have a legitimate reason to model.
+- **Pre-scan every image URL before any load.** BigCommerce validates `image_url` fetchability at create time — one 404 rejects the whole product. `scan_image_urls.py` (concurrent HEAD) has caught dead URLs in every single project.
+- **Never send a product-level `sku` that duplicates one of the product's own variant SKUs** (common in exports) — 409 "Sku not unique". Drop the top-level `sku` when creating products with an inline variants matrix.
+- **trees/categories API shape gotchas:** batch `POST` returns items keyed `category_id` while the `GET` tree view uses `id`; category `url` must be an object `{"path": ...}` (plain string → 422); reruns hit "duplicate name in same parent" unless you reconcile by (name, parent) first. And the tree `GET` nests `children` — don't verify parents by matching `parent_id` across the top-level array.
+- **Scrub source traces in slugs too.** Brand scrubbing must cover brand names, category names, descriptions (site chrome: contact blocks, "ask our experts", off-domain links) — and then **regenerate slugs from the scrubbed names**, because source slugs keep the old brand.
+- **Extracting from another BigCommerce store? Work in-process.** The `bc_api.py` CLI redacts the store hash from CDN image URLs; `request()`/`get_all()` imported into your script return unredacted JSON.
 - **Never write credentials into pipeline scripts or CSVs.** All API access goes through `bc_api.py`'s credential resolution (env vars, `.env.local`, or `~/.bc-cli/config.json`) — see the `commerce-admin` skill.
 
 ## Safety

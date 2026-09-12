@@ -7,7 +7,8 @@ Built from a real end-to-end replication (140 categories across 2 channel trees,
 ## What's in here
 
 - **`SKILL.md`** — the staged pipeline Claude Code follows: crawl → nav parse → families → categories → products → enrichment → swatches → inventory → SEO, plus the hard-won rules (single-channel category trees, parents-before-children, consistent option-name parsing across scripts, iterative enrichment with failure CSVs).
-- **`scripts/`** — the 15 pipeline scripts, one per stage (see the table in `SKILL.md`). Constants that must change per site/store are marked `# EDIT PER SITE`.
+- **`scripts/`** — the pipeline scripts, one per stage (see the table in `SKILL.md`), plus two template utilities: `load_template.py` (source-agnostic vertical-template loader) and `scan_image_urls.py` (pre-load image-URL liveness scan). Constants that must change per site/store are marked `# EDIT PER SITE`.
+- **`references/`** — `vertical-templates.md` (compact reusable demo-catalog format: ≤5 top categories / ≤20 total / ≤150 products, with scrub & verification checklists) and `site-adapters.md` (per-platform extraction markers: OXID eShop, Shopify exports, BC→BC).
 
 ## Prerequisites
 
