@@ -21,6 +21,12 @@ Notes / hard-won fixes baked in:
     (templates store weight_kg).
   - Pre-run scan_image_urls.py: BigCommerce validates every image_url at create
     time and rejects the whole product if one 404s.
+  - Product create can return 207 (multi-status) on a successful create with a
+    sub-resource warning -- treated as success if response.data.id is present,
+    not as a failure.
+  - Category tree GET nests children; existing categories are flattened
+    recursively before name+parent matching, or already-created leaves look
+    missing and get retried (409/422 duplicate name) on every rerun.
 """
 import argparse
 import csv
@@ -103,7 +109,16 @@ def main():
     if cat_map_file.exists():
         cat_map = {r["template_id"]: int(r["bc_id"]) for r in csv.DictReader(open(cat_map_file))}
     if len(cat_map) < len(cats):
-        existing = list(get_all(f"/v3/catalog/trees/{tree_id}/categories", env=env))
+        # GET tree view nests children -- must flatten recursively, or existing
+        # leaf categories are invisible to by_name_parent and get recreated (409/422)
+        # on every rerun instead of being reconciled.
+        def flatten(nodes):
+            for n in nodes:
+                yield n
+                if n.get("children"):
+                    yield from flatten(n["children"])
+
+        existing = list(flatten(get_all(f"/v3/catalog/trees/{tree_id}/categories", env=env)))
         by_name_parent = {(e["name"], e["parent_id"]): e.get("category_id", e.get("id")) for e in existing}
         tops = [c for c in cats if not c["parent_category_id"]]
         leaves = [c for c in cats if c["parent_category_id"]]
@@ -155,9 +170,10 @@ def main():
         todo = todo[:args.limit]
     print(f"[products] {len(done)} already loaded, {len(todo)} to create")
 
+    is_new_map_file = not prod_map_file.exists() or prod_map_file.stat().st_size == 0
     pmf = open(prod_map_file, "a", newline="")
     pmw = csv.writer(pmf)
-    if not done:
+    if is_new_map_file:
         pmw.writerow(["template_product_id", "sku", "bc_product_id"])
     for i, p in enumerate(todo, 1):
         imgs = [u.strip() for u in p["images"].split(",") if u.strip()]
@@ -194,7 +210,9 @@ def main():
         if body["brand_id"] is None:
             body.pop("brand_id")
         st, resp = request("POST", "/v3/catalog/products", body=body, env=env)
-        if st in (200, 201):
+        # BC returns 207 (multi-status) when the product is created but a
+        # sub-resource (e.g. an image fetch) warns -- still a successful create.
+        if st in (200, 201, 207) and (resp or {}).get("data", {}).get("id"):
             bc_id = resp["data"]["id"]
             pmw.writerow([p["product_id"], p["sku"], bc_id])
             pmf.flush()

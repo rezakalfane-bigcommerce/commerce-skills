@@ -12,6 +12,7 @@ Existing templates (load results in `load_out_*/` next to each template):
 | `it-components` | targetcomponents BC store (scraped CSVs) | 150 simple | – |
 | `hvac-distribution` | greenmill BC store (scraped CSVs) | 150 simple | – |
 | `outdoor-gear` | bergfreunde.eu (live OXID crawl) | 145 | 2,556 (Colour×Size) |
+| `hardware-repair-parts` | primelineparts.com (live custom Next.js/BC-backed crawl) | 124 simple | – |
 | `vape-distribution` | flawless BC store (Shopify export) | 146 | 1,366 (Flavour/Colour/Resistance/Nicotine Strength) |
 
 ## Template anatomy

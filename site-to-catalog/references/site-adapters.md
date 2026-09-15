@@ -50,6 +50,28 @@ publicly fetchable, reusable as import image URLs):
   finish") — scrub brand-position mentions, keep/replace the adjective
   deliberately.
 
+## Custom Next.js/Makeswift frontend on a BigCommerce backend (proven on primelineparts.com)
+
+Recognizable by product images on `cdn11.bigcommerce.com/s-<store_hash>/...` behind a
+fully custom (non-Catalyst) Next.js storefront, often built on Makeswift
+(`storage.googleapis.com/s.mkswft.com/...` asset URLs in the page source):
+- The top-level category pages (e.g. `/categories/<top-slug>/`) are server-rendered
+  and a non-JS fetch gets real product tiles (name/url/image/price) straight from
+  the HTML.
+- **Trap:** in-page subcategory facets rendered as `?category=<Name>` query params
+  are client-side-only (React state hydrated after load) — a plain fetch of that
+  URL silently returns the *same* unfiltered top-level tile set, not the filtered
+  one. There is no error, so this is easy to miss and load a template with
+  duplicate/wrong-category data.
+- **Fix:** look for actual nested subcategory routes instead —
+  `/categories/<top-slug>/<sub-slug>/` (guess the sub-slug from the facet label,
+  e.g. "Window Hardware" → `window-hardware`). These 200 and are server-rendered
+  with the real per-subcategory product set. Verify with a quick `curl -o /dev/null
+  -w '%{http_code}'` sweep before trusting a batch of WebFetch calls to them.
+- No `__NEXT_DATA__` or other embedded JSON blob is present in the HTML (grepping
+  for it returns nothing) — don't waste a round-trip looking for one; go straight
+  to the nested-route guess.
+
 ## BigCommerce → BigCommerce (template from another BC store)
 
 - Extract in-process (`from bc_api import request, get_all`) — **the CLI output
