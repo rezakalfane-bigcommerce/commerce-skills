@@ -8,11 +8,11 @@ A [Claude Code](https://claude.com/claude-code) skill for administering a BigCom
 - **`scripts/bc_api.py`** — a stdlib-only Python client for the core Management API: resolves credentials, paginates, retries on 429, redacts secrets from all output.
 - **`scripts/b2b_api.py`** — the same client pattern pointed at the separate B2B Edition API host/auth headers (`api-b2b.bigcommerce.com`, `X-Auth-Token` + `X-Store-Hash`); reuses `bc_api.py`'s credential resolution.
 - **`references/`** — endpoint references Claude reads on demand:
-  - `catalog.md` — products, variants, options/modifiers, categories, brands, images, metafields, inventory
-  - `merchandising.md` — promotions, coupons, price lists, customer segments, banners, gift certificates, channels
+  - `catalog.md` — products, variants, options/modifiers, categories, brands, images, metafields, inventory, backorders
+  - `merchandising.md` — promotions, coupons, price lists (incl. cascading layers), customer segments, banners, gift certificates, channels
   - `orders-customers.md` — orders, shipments, refunds, customers, customer groups, wishlists
   - `store-admin.md` — store settings, webhooks, redirects, scripts, pages, blog, shipping, tax, logs
-  - `b2b-edition.md` — B2B companies (incl. sub-company hierarchies), buyer users/roles, super admins, quotes/RFQs, orders, invoices, payments, shopping lists
+  - `b2b-edition.md` — B2B companies (incl. sub-company hierarchies), buyer users/roles, super admins, quotes/RFQs, orders, invoices, payments, shopping lists, B2B webhooks
 
 ## Install
 

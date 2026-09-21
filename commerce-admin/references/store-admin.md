@@ -86,7 +86,47 @@ The Customer Login API can establish a hosted-domain session with a signed JWT, 
 }
 ```
 
-Destination must be HTTPS, served on port 443 (no custom ports), and respond 200 quickly. Common scopes: `store/order/*`, `store/order/created`, `store/order/statusUpdated`, `store/product/*`, `store/product/inventory/updated`, `store/customer/*`, `store/cart/abandoned`, `store/shipment/*`, `store/sku/inventory/*`. A webhook auto-deactivates after 90 days of inactivity (no matching events) or repeated delivery failures — check `is_active` when debugging "webhooks stopped firing". Email notifications for failures: `PUT /v3/hooks/admin` / `GET /v3/hooks/admin?is_active=true`.
+For an HTTPS destination: must be HTTPS, served on port 443 (no custom ports), and respond 200 quickly. Common scopes: `store/order/*`, `store/order/created`, `store/order/statusUpdated`, `store/product/*`, `store/product/inventory/updated`, `store/customer/*`, `store/cart/abandoned`, `store/shipment/*`, `store/sku/inventory/*`. A webhook auto-deactivates after 90 days of inactivity (no matching events) or repeated delivery failures — check `is_active` when debugging "webhooks stopped firing". Email notifications for failures: `PUT /v3/hooks/admin` / `GET /v3/hooks/admin?is_active=true`.
+
+### Non-HTTPS destinations (GraphQL only)
+
+REST `/v3/hooks` only creates HTTPS webhooks. The other two delivery types exist **only on the Admin GraphQL API** (`https://api.bigcommerce.com/stores/{STORE_HASH}/graphql`, same `X-Auth-Token`) — if a user asks for queue/bus delivery, don't tell them it's unsupported, switch to GraphQL:
+
+- **Amazon EventBridge** — `createEventSource` mutation to mint an event source, associate it with an event bus on the AWS side (then rule → target, e.g. SQS), then `createEventBridgeWebhook` with the event source ARN as `destination`.
+- **Google Cloud Pub/Sub** — delivers to a GCP Pub/Sub topic.
+
+```graphql
+mutation createAwsEventBridgeWebhook($input: CreateEventBridgeWebhookInput!) {
+  webhook { createEventBridgeWebhook(input: $input) { webhook { id scope destination isActive createdAt } } }
+}
+```
+```json
+{ "input": { "destination": "{{event_source_arn}}", "isActive": true, "scope": "store/category/updated" } }
+```
+
+### Data filters (GraphQL only)
+
+Also GraphQL-only: subscribe to a scope but receive only the events you care about, via `eventFilters` on create/update. Each `dataFilter` has three parts:
+
+| Field | Meaning |
+|---|---|
+| `path` | Array of nested keys into the event payload's `data` object (e.g. `["namespace"]` for a metafield's namespace) |
+| `values` | `stringValues` / `longValues` / `doubleValues` — **one value only** at present |
+| `delivery` | `IN` = deliver only matches; `NOT_IN` = deliver everything except matches |
+
+```json
+{
+  "input": {
+    "scope": "store/product/metafield/updated",
+    "destination": "https://yourapp.example.com/webhooks",
+    "eventFilters": [
+      { "dataFilter": { "path": ["namespace"], "values": { "stringValues": ["my_app_data"] }, "delivery": "IN" } }
+    ]
+  }
+}
+```
+
+Limits worth stating up front: **one data filter per webhook, one value per filter.** Generally available only on a metafield's `namespace`; other fields are in a beta that requires BigCommerce support to allowlist the store — so don't promise filtering on an arbitrary payload field without checking.
 
 ## 301 redirects
 

@@ -151,6 +151,36 @@ Record shape: `{"variant_id": 123, "currency": "usd", "price": 8.5, "sale_price"
 
 Assignments bind a price list to a `customer_group_id` and/or `channel_id` (both optional, but `price_list_id` is required): `POST /v3/pricelists/assignments` with a **bare array** `[{"price_list_id": 1, "customer_group_id": 5}]`. `DELETE /v3/pricelists/assignments` takes only query params (`id`, `price_list_id`, `customer_group_id`, `channel_id`, and `:in` variants) — no body — and requires at least one.
 
+### Resolution order (why a shopper sees the price they see)
+
+When debugging "wrong price on the storefront", walk this in order — first match wins:
+
+1. Price list assigned to the shopper's customer group **and** current channel
+2. Price list assigned to that customer group only
+3. Customer group discounts
+4. The channel's default price list
+5. Catalog price (or an auto-converted multi-currency price)
+
+At every step, a variant with **no record** in the matched price list falls through to the catalog price — a missing record looks identical to "price list not applied", so check for the record before re-checking assignments.
+
+### Cascading price lists (open beta)
+
+Adds one fallback layer *inside* step 1-4 above, so many primary lists can share a base list instead of duplicating records: primary price list → fallback layer → catalog price. Set via the `layers` field on the price list itself:
+
+```json
+PUT /v3/pricelists/{price_list_id}
+{ "layers": [ { "price_list_id": 5 } ] }
+```
+
+`"layers": []` removes all layers; omitting the field leaves them unchanged.
+
+- **One layer maximum** per price list — it's a single fallback, not a chain.
+- Inclusive and exclusive lists can only layer with like types; mismatched returns **422**.
+- An **inactive** list used as a layer is silently skipped during resolution (a good suspect when a fallback "isn't working").
+- You cannot change `prices_entered_with_tax` on a list that participates in a layer relationship — remove the relationships first.
+
+**In a B2B Edition context:** companies and customer groups are independent — a company isn't required to have a customer group — but the customer group is the *only* mechanism binding a price list to a company. Per-company pricing means price list → customer group → company (one group can serve many companies). Cascading layers are what make that tractable when dozens of companies share a baseline with small variations. Note this is a core `/v3/pricelists` feature, not a B2B-Edition-exclusive one.
+
 ## Customer segments
 
 Segments drive targeted promotions (Enterprise feature).

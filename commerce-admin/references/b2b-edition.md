@@ -204,6 +204,30 @@ POST /api/v3/io/rfq/{quoteId}/ordered
 
 **Not BigCommerce API calls — skip these:** the demo collection's `New Request`, `Set session vars`, and `Get session vars` items hit `localhost:3000/api/storefront/...` — those are routes on the demo's own Catalyst/Next.js storefront app (session-stored quote/discount state for its UI), not BigCommerce endpoints. Don't try to replicate them against a real store.
 
+## B2B webhooks
+
+**The one part of B2B Edition that is *not* on the B2B host.** B2B events are subscribed through the ordinary core REST `POST /v3/hooks` on `api.bigcommerce.com`, with the normal store `X-Auth-Token` — not `api-b2b.bigcommerce.com`, and not `scripts/b2b_api.py`. Use `bc_api.py` for these. The API account needs the **B2B Edition** scope set to *modify*. `destination` must be port 443; allow up to a minute before a new hook goes live.
+
+```bash
+python scripts/bc_api.py POST /v3/hooks --data '{"scope": "store/company/created", "destination": "https://example.com/webhooks", "is_active": true}'
+```
+
+| Group | Scopes |
+|---|---|
+| Company | `store/company/created` (**not** fired by Bulk Create), `store/company/updated` (name, email, phone, status, address, price list, extra fields), `store/company/deleted`, `store/company/statusUpdated` (e.g. pending → approved) |
+| Company user | `store/company/user/created`, `.../updated`, `.../deleted`, `store/company/superadmin/assignmentUpdated` |
+| Company address | `store/company/address/created`, `.../updated`, `.../deleted` |
+| Super admin | `store/superadmin/created`, `.../updated`, `.../deleted`, `.../assignmentUpdated` |
+| Quote | `store/quote/created`, `store/quote/updated`, `store/quote/statusUpdated`, `store/quote/deleted` |
+
+Payloads are thin — ID references, not full records. Company: `{"data": {"company_id": 1234}, "scope": ..., "store_id": ..., "hash": ..., "created_at": ..., "producer": "stores/{store_hash}"}`. Quote: `{"data": {"quote_id": 456, "quote_uuid": "a1b2..."}}`. Expect to follow up with a read on the B2B host.
+
+**Two absences to state plainly rather than guess around:**
+- **No invoice webhooks.** Despite invoices being a first-class B2B resource (see above), there are no documented `store/invoice/*` events. If a user wants invoice-change notifications, that's polling `GET /api/v3/io/ip/invoices`, not a subscription.
+- **No storefront channel-specific B2B webhooks** — you can't scope a B2B hook to one channel.
+
+Company-user events cover B2B customers attached to a company only; B2C customers, guests, and super admins don't trigger them (super admins have their own group).
+
 ## Gotchas worth remembering
 
 - Every field name in this API is inconsistently cased across resources (`firstName` vs `first_name`, `companyId` vs `company_id`) — when a call 400s citing a field as blank/missing, suspect casing first before assuming the field doesn't exist.

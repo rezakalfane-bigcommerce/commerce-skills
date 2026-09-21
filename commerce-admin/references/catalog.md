@@ -11,6 +11,7 @@ OAuth scope: **Products** (read-only or modify) for catalog; **Products / Invent
 - [Images & videos](#images--videos)
 - [Custom fields, metafields, bulk pricing](#custom-fields-metafields-bulk-pricing)
 - [Inventory (locations API)](#inventory-locations-api)
+- [Backorders](#backorders)
 - [Recipes](#recipes)
 
 ## Products
@@ -108,6 +109,41 @@ For multi-location stores; simple stores can just set `inventory_level` on produ
 **Adjustments** (2,000 items/call on both; each item identified by `sku`, `variant_id`, **or** `product_id` — not just `sku`):
 - **Absolute set** (the recommended default): `PUT /v3/inventory/adjustments/absolute` — `{"items": [{"location_id": 1, "sku": "ABC", "quantity": 40}]}`. Batches more efficiently than the Catalog API and has lower complexity than relative.
 - **Relative (+/-)**: `POST /v3/inventory/adjustments/relative` — same shape, `quantity` may be negative. Per BigCommerce's own guidance, use this **only** when the absolute quantity isn't known — e.g., syncing inventory changes driven by orders through a third party — otherwise prefer absolute.
+
+## Backorders
+
+Lets a store keep selling an item that's out of stock, with a per-location cap. Three separate field families — don't mix them up.
+
+**Capacity: `backorder_limit`** (a per-location inventory *setting*, so it goes through the settings endpoint, not an adjustment):
+
+```json
+PUT /v3/inventory/locations/{location_id}/items
+{
+  "settings": [
+    { "identity": { "sku": "SLCTBS-A9615491", "variant_id": 1, "product_id": 77 }, "backorder_limit": 100 }
+  ]
+}
+```
+
+- Integer, or `null` for **unlimited** backorder.
+- Drives availability arithmetic: `available_to_sell = total_inventory_onhand - safety_stock + backorder_limit`.
+
+**Current obligation: `qty_backordered`** — an extra field on the same two adjustment endpoints already covered above, alongside `quantity`:
+
+- `PUT /v3/inventory/adjustments/absolute` — `{"reason": "...", "items": [{"location_id": 1, "variant_id": 1, "quantity": 1, "qty_backordered": 0}]}` sets it outright.
+- `POST /v3/inventory/adjustments/relative` — same shape, `qty_backordered` may be negative (e.g. `-1` to burn down one unit as it ships).
+
+**On orders (v2):** set `quantity_backordered` on a line item via `PUT /v2/orders/{id}` — `{"products": [{"id": 8, "quantity": 10, "quantity_backordered": 3}]}`. Orders also read back `backorder_message` (line item) and `backorder_shipping_expectation_message` (order level); both `null` when nothing is backordered.
+
+**Overselling past the cap returns `409`**, not a silent clamp — the payload names the real headroom, which is what you want to surface to the user:
+
+```json
+{ "status": 409, "message": "Quantities of one or more products are out of stock or did not meet quantity requirements.",
+  "details": { "errors": [ { "type": "OutOfStock", "variant_id": 74, "location_id": 1,
+    "available_quantity": 10, "available_quantity_for_backorder": 45 } ] } }
+```
+
+**Reading backorder state from a storefront:** Cart/Checkout expose a `stockPosition` object on physical line items, but **only when explicitly requested** — `GET /carts/{cart_id}?include=lineItems.physicalItems.stockPosition` (checkout: `?include=cart.lineItems.physicalItems.stockPosition`), giving `quantityOnHand`, `quantityBackordered`, `quantityOutOfStock`, `backorderMessage`. Storefront GraphQL exposes `availableOnHand`, `unlimitedBackorder`, `availableForBackorder` (`null` if unlimited), and `backorderMessage` on products/variants.
 
 ## Recipes
 
